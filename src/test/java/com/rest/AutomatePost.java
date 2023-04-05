@@ -10,6 +10,9 @@ import org.hamcrest.text.MatchesPattern;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.util.HashMap;
+
 import static io.restassured.RestAssured.*;
 import static io.restassured.matcher.RestAssuredMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,16 +37,9 @@ public class AutomatePost {
 
     @Test
     public void validate_post_request_bdd_style(){
-        String payload = "{\n" +
-                "    \"workspace\": {\n" +
-                "        \"name\": \"RestAssuredWorkspace\",\n" +
-                "        \"type\": \"personal\",\n" +
-                "        \"description\": \"Criado pelo RestAssured\"\n" +
-                "    \n" +
-                "    }\n" +
-                "}";
+        File file = new File("src/main/resources/CreateWorkspacePayload.json");
         given().
-                body(payload).
+                body(file).
         when().
                 post("/workspaces").
         then().
@@ -56,19 +52,30 @@ public class AutomatePost {
 
     @Test
     public void validate_post_request_non_bdd_style(){
-        String payload = "{\n" +
-                "    \"workspace\": {\n" +
-                "        \"name\": \"RestAssuredWorkspace\",\n" +
-                "        \"type\": \"personal\",\n" +
-                "        \"description\": \"Criado pelo RestAssured\"\n" +
-                "    \n" +
-                "    }\n" +
-                "}";
+        File file = new File("src/main/resources/CreateWorkspacePayload.json");
         Response response = given().
-                body(payload).
+                body(file).
                 post("/workspaces");
 
         assertThat(response.<String>path("workspace.name"),equalTo("RestAssuredWorkspace"));
+        assertThat(response.<String>path("workspace.id"),matchesPattern("^[a-z0-9-]{36}$"));
+
+
+    }
+
+    @Test
+    public void validate_post_request_non_bdd_style_objetct_mapping(){
+        HashMap<String,Object> mainObject = new HashMap<>();
+        HashMap <String,String> nestedObject = new HashMap<>();
+        nestedObject.put("name","ObjectMapping");
+        nestedObject.put("type","personal");
+        nestedObject.put("description","created with hashmap");
+        mainObject.put("workspace",nestedObject);
+        Response response = given().
+                body(mainObject).
+                post("/workspaces");
+
+        assertThat(response.<String>path("workspace.name"),equalTo("ObjectMapping"));
         assertThat(response.<String>path("workspace.id"),matchesPattern("^[a-z0-9-]{36}$"));
 
 
