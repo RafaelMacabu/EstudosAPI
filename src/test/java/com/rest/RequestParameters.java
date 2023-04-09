@@ -2,6 +2,10 @@ package com.rest;
 
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 
 import static io.restassured.RestAssured.get;
@@ -69,6 +73,40 @@ public class RequestParameters {
                 log().all().
                 assertThat().
                 statusCode(200);
+
+    }
+
+    @Test
+    public void upload_file_multipart_form_data(){
+        String attributes = "{\"name\" : \"temp.txt.txt\",\"parent\" :{\"id\" : \"123456\"}";
+        given().
+                baseUri("https://postman-echo.com").
+                multiPart("file",new File("temp.txt")).
+                multiPart("attributes",attributes,"application/json").
+                log().all().
+                when().
+                post("/post").
+                then().
+                log().all().
+                assertThat().
+                statusCode(200);
+
+    }
+
+    @Test
+    public void download_file() throws IOException {
+        byte[] bytes = given().
+                baseUri("BASE URL DO GITHUB").
+                log().all().
+                when().
+                post("LINK DO ARQUIVO").
+                then().
+                log().all().
+                extract().response().asByteArray();
+
+        OutputStream os = new FileOutputStream(new File("NOME DO ARQUIVO"));
+        os.write(bytes);
+        os.close();
 
     }
 
