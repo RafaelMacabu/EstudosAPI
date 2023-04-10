@@ -1,5 +1,6 @@
 package com.rest;
 
+import io.restassured.config.EncoderConfig;
 import org.testng.annotations.Test;
 
 import java.io.File;
@@ -8,8 +9,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
 
-import static io.restassured.RestAssured.get;
-import static io.restassured.RestAssured.given;
+import static io.restassured.RestAssured.*;
 
 public class RequestParameters {
 
@@ -107,6 +107,25 @@ public class RequestParameters {
         OutputStream os = new FileOutputStream(new File("NOME DO ARQUIVO"));
         os.write(bytes);
         os.close();
+
+    }
+
+
+    @Test
+    public void url_encoded_request_payload(){
+        given().baseUri("https://postman-echo.com").
+                config(config().encoderConfig(EncoderConfig.encoderConfig().
+                        appendDefaultContentCharsetToContentTypeIfUndefined(false))).
+                formParam("key1","value1").
+                formParam("key 2","value 2").
+                log().all().
+                when().
+                post("/post").
+                then().
+                log().all().
+                assertThat().
+                statusCode(200);
+
 
     }
 
