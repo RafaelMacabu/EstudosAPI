@@ -2,6 +2,8 @@ package com.rest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -10,7 +12,10 @@ import io.restassured.http.ContentType;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.responseSpecification;
@@ -55,4 +60,44 @@ public class JacksonAPI_JSONObject {
                 assertThat().
                 body("workspace.name", equalTo("myThirdWorkspace"));
     }
-}
+
+    @Test
+    public void serialize_json_using_jackson() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ObjectNode nestedObjectNode = objectMapper.createObjectNode();
+        nestedObjectNode.put("name","myThirrrdWorkspace");
+        nestedObjectNode.put("type","personal");
+        nestedObjectNode.put("description","Created By HashMap");
+
+        ObjectNode mainObjectNode = objectMapper.createObjectNode();
+        mainObjectNode.set("workspace",nestedObjectNode);
+
+
+        given().
+                body(mainObjectNode).
+                when().
+                post("/workspaces").
+                then().spec(responseSpecification).
+                assertThat().
+                body("workspace.name", equalTo("myThirrrdWorkspace"));
+    }
+
+    @Test
+    public void serialize_json_array() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ArrayNode arrayNodeList = objectMapper.createArrayNode();
+
+        ObjectNode obj5001Node = objectMapper.createObjectNode();
+        obj5001Node.put("id","5001");
+        obj5001Node.put("type","None");
+
+        ObjectNode obj4003Node = objectMapper.createObjectNode();
+        obj4003Node.put("id","4003");
+        obj4003Node.put("type","Glazed");
+
+        arrayNodeList.add(obj5001Node);
+        arrayNodeList.add(obj4003Node);
+
+        String jsonListStr = objectMapper.writeValueAsString(arrayNodeList);
+}}
+

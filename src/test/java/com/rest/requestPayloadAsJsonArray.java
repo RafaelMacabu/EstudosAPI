@@ -1,5 +1,9 @@
 package com.rest;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -62,4 +66,32 @@ public class requestPayloadAsJsonArray {
                 assertThat().
                 body("msg",equalTo("sucess"));
     }
-}
+
+
+    @Test
+    public void serialize_json_array() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        ArrayNode arrayNodeList = objectMapper.createArrayNode();
+
+        ObjectNode obj5001Node = objectMapper.createObjectNode();
+        obj5001Node.put("id","5001");
+        obj5001Node.put("type","None");
+
+        ObjectNode obj4003Node = objectMapper.createObjectNode();
+        obj4003Node.put("id","4003");
+        obj4003Node.put("type","Glazed");
+
+        arrayNodeList.add(obj5001Node);
+        arrayNodeList.add(obj4003Node);
+
+        String jsonListStr = objectMapper.writeValueAsString(arrayNodeList);
+
+        given(customRequestSpec).
+                body(jsonListStr).
+                when().
+                post("/post").
+                then().spec(customSpecification).
+                assertThat().
+                body("msg",equalTo("success"));
+    }}
+
