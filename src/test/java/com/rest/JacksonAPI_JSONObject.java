@@ -1,9 +1,11 @@
 package com.rest;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.rest.pojo.simple.SimplePojo;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -17,8 +19,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.restassured.RestAssured.given;
-import static io.restassured.RestAssured.responseSpecification;
+import static io.restassured.RestAssured.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 public class JacksonAPI_JSONObject {
@@ -99,5 +101,48 @@ public class JacksonAPI_JSONObject {
         arrayNodeList.add(obj4003Node);
 
         String jsonListStr = objectMapper.writeValueAsString(arrayNodeList);
-}}
+   }
+
+    @Test
+    public void simple_pojo_example(){
+//        SimplePojo simplePojo = new SimplePojo("value1","value2");
+        SimplePojo simplePojo = new SimplePojo();
+        simplePojo.setKey1("value1");
+        simplePojo.setKey2("value2");
+
+        given(requestSpecification).
+                baseUri("https://75d89141-4328-4463-a1ca-7ff3f87fc814.mock.pstmn.io").
+                body(simplePojo).
+                when().
+                post("/postSimplePojo").
+                then().spec(responseSpecification).
+                assertThat().
+                body("key1",equalTo("value1"),
+                        "key2",equalTo("value2"));
+    }
+
+    @Test
+    public void deserialize_simple_pojo_example() throws JsonProcessingException {
+//        SimplePojo simplePojo = new SimplePojo("value1","value2");
+        SimplePojo simplePojo = new SimplePojo();
+        simplePojo.setKey1("value1");
+        simplePojo.setKey2("value2");
+
+        SimplePojo deserializedPojo = given(requestSpecification).
+                baseUri("https://75d89141-4328-4463-a1ca-7ff3f87fc814.mock.pstmn.io").
+                body(simplePojo).
+                when().
+                post("/postSimplePojo").
+                then().spec(responseSpecification).
+                extract().
+                response().as(SimplePojo.class);
+
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String deserializedPojoStr = objectMapper.writeValueAsString(deserializedPojo);
+        String simplePojoStr = objectMapper.writeValueAsString(simplePojo);
+        assertThat(objectMapper.readTree(deserializedPojoStr),equalTo(objectMapper.readTree(simplePojoStr)));
+    }
+
+}
 
