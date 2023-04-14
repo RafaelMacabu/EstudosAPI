@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.rest.pojo.simple.SimplePojo;
+import com.rest.pojo.workspace.Workspace;
+import com.rest.pojo.workspace.WorkspaceRoot;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
 import io.restassured.filter.log.LogDetail;
 import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -22,6 +26,7 @@ import java.util.Map;
 import static io.restassured.RestAssured.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.matchesPattern;
 
 public class JacksonAPI_JSONObject {
     @BeforeClass
@@ -144,5 +149,47 @@ public class JacksonAPI_JSONObject {
         assertThat(objectMapper.readTree(deserializedPojoStr),equalTo(objectMapper.readTree(simplePojoStr)));
     }
 
+    @Test
+    public void validate_post_request_non_bdd_style_object_mapping(){
+        Workspace workspace = new Workspace("ObjectMappingg","personal","created with hashmap");
+        WorkspaceRoot workspaceRoot = new WorkspaceRoot(workspace);
+        WorkspaceRoot deserializedWorkspaceRoot = given().
+                body(workspaceRoot).
+                when().
+                post("/workspaces").
+                then().spec(responseSpecification).
+                extract().response().as(WorkspaceRoot.class);
+
+        assertThat(deserializedWorkspaceRoot.getWorkspace().getName(),equalTo(workspaceRoot.getWorkspace().getName()));
+        assertThat(deserializedWorkspaceRoot.getWorkspace().getId(),matchesPattern("^[a-z0-9-]{36}$"));
+
+
+    }
+
+    @Test (dataProvider = "workspace")
+    public void validate_post_request_with_data_provider(String name,String type,String description){
+        Workspace workspace = new Workspace(name,type,description);
+        WorkspaceRoot workspaceRoot = new WorkspaceRoot(workspace);
+        WorkspaceRoot deserializedWorkspaceRoot = given().
+                body(workspaceRoot).
+                when().
+                post("/workspaces").
+                then().spec(responseSpecification).
+                extract().response().as(WorkspaceRoot.class);
+
+        assertThat(deserializedWorkspaceRoot.getWorkspace().getName(),equalTo(workspaceRoot.getWorkspace().getName()));
+        assertThat(deserializedWorkspaceRoot.getWorkspace().getId(),matchesPattern("^[a-z0-9-]{36}$"));
+
+
+    }
+
+    @DataProvider(name = "workspace")
+    public Object[][] getWorkspace(){
+        return new Object[][]{
+                {"workspace5","personal","description"},
+                {"workspace6","team","description"}
+    };
+
+}
 }
 
