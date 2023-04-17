@@ -1,6 +1,10 @@
 package com.rest.pojo.workspace;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+@JsonIgnoreProperties(value = "id",allowSetters = true)
 public class Workspace {
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private String id;
     private String name;
     private String type;
