@@ -3,7 +3,6 @@ package com.rest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rest.pojo.collection.*;
-import com.rest.pojo.workspace.WorkspaceRoot;
 import io.restassured.RestAssured;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.builder.ResponseSpecBuilder;
@@ -23,6 +22,9 @@ import java.util.List;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.RestAssured.responseSpecification;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
 
 public class ComplexPojoTest {
 
@@ -51,40 +53,40 @@ public class ComplexPojoTest {
 
         Body body = new Body("raw","{\"data\": \"123\"}");
 
-        Request request = new Request("https://postman-echo.com/post","POST",headerList,body,"This is a sample POST Request");
+        RequestRequest request = new RequestRequest("https://postman-echo.com/post","POST",headerList,body,"This is a sample POST Request");
 
-        RequestRoot requestRoot = new RequestRoot("Sample POST Request",request);
-        List<RequestRoot> requestRootList = new ArrayList<>();
+        RequestRootRequest requestRoot = new RequestRootRequest("Sample POST Request",request);
+        List<RequestRootRequest> requestRootList = new ArrayList<>();
         requestRootList.add(requestRoot);
 
-        Folder folder = new Folder("This is a folder",requestRootList);
-        List<Folder> folderList = new ArrayList<>();
+        FolderRequest folder = new FolderRequest("This is a folder",requestRootList);
+        List<FolderRequest> folderList = new ArrayList<>();
         folderList.add(folder);
 
         Info info = new Info("Collection1024","This is just a sample collection.","https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
 
-        Collection collection = new Collection(info,folderList);
-        CollectionRoot collectionRoot = new CollectionRoot(collection);
+        CollectionRequest collection = new CollectionRequest(info,folderList);
+        CollectionRootRequest collectionRootBase = new CollectionRootRequest(collection);
 
 
         String collectionUid = given().
-                body(collectionRoot).
+                body(collectionRootBase).
                 when().
                 post("/collections").
                 then().spec(responseSpecification).
                 extract().response().path("collection.uid");
 
 
-        CollectionRoot deserializedCollectionRoot = given().
+        CollectionRootResponse deserializedCollectionRootBase = given().
                 pathParam("collectionUid",collectionUid).
                 when().
                 get("/collections/{collectionUid}").
                 then().spec(responseSpecification).
-                extract().response().as(CollectionRoot.class);
+                extract().response().as(CollectionRootResponse.class);
 
         ObjectMapper objectMapper = new ObjectMapper();
-        String collectionRootString = objectMapper.writeValueAsString(collectionRoot);
-        String deserializedCollectionRootString = objectMapper.writeValueAsString(deserializedCollectionRoot);
+        String collectionRootString = objectMapper.writeValueAsString(collectionRootBase);
+        String deserializedCollectionRootString = objectMapper.writeValueAsString(deserializedCollectionRootBase);
 
         JSONAssert.assertEquals(collectionRootString,deserializedCollectionRootString, new CustomComparator(
                 JSONCompareMode.STRICT_ORDER, new Customization("collection.item[*].item[*].request.url",
@@ -94,6 +96,63 @@ public class ComplexPojoTest {
                     }
                 })
         ));
+
+        List<String> urlRequestList = new ArrayList<>();
+        List<String> urlResponseList = new ArrayList<>();
+
+        for (RequestRootRequest requestRootRequest:requestRootList){
+            System.out.println("url from request payload: " + requestRootRequest.getRequest().getUrl());
+            urlRequestList.add(requestRootRequest.getRequest().getUrl());
+        }
+
+        List<FolderResponse> folderResponseList = deserializedCollectionRootBase.getCollection().getItem();
+        for (FolderResponse folderResponse: folderResponseList){
+            List<RequestRootResponse> requestRootResponseList = folderResponse.getItem();
+            for (RequestRootResponse requestRootResponse : requestRootResponseList){
+                URL url = requestRootResponse.getRequest().getUrl();
+                System.out.println("url from response payload: " + url.getRaw());
+                urlResponseList.add(url.getRaw());
+            }
+        }
+
+        assertThat(urlResponseList,containsInAnyOrder(urlRequestList.toArray()));
+
+    }
+
+    @Test
+    public void complex_pojo_create_empty_collection() throws JsonProcessingException, JSONException {
+
+        List<FolderRequest> folderList = new ArrayList<>();
+
+        Info info = new Info("CollectionEmpty","This is just a sample collection.","https://schema.getpostman.com/json/collection/v2.1.0/collection.json");
+
+        CollectionRequest collection = new CollectionRequest(info,folderList);
+        CollectionRootRequest collectionRootBase = new CollectionRootRequest(collection);
+
+
+        String collectionUid = given().
+                body(collectionRootBase).
+                when().
+                post("/collections").
+                then().spec(responseSpecification).
+                extract().response().path("collection.uid");
+
+
+        CollectionRootResponse deserializedCollectionRootBase = given().
+                pathParam("collectionUid",collectionUid).
+                when().
+                get("/collections/{collectionUid}").
+                then().spec(responseSpecification).
+                extract().response().as(CollectionRootResponse.class);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        String collectionRootString = objectMapper.writeValueAsString(collectionRootBase);
+        String deserializedCollectionRootString = objectMapper.writeValueAsString(deserializedCollectionRootBase);
+
+        assertThat(objectMapper.readTree(collectionRootString),
+                equalTo(objectMapper.readTree(deserializedCollectionRootString)));
+
+
 
     }
 }
